@@ -50,6 +50,7 @@ public:
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
     keyframe(const unsigned int id,
+             const unsigned int src_frm_id,
              const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
              const feature::orb_params* orb_params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
@@ -59,6 +60,7 @@ public:
     static std::shared_ptr<keyframe> make_keyframe(unsigned int id, const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id,
+        const unsigned int src_frm_id,
         const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
         const feature::orb_params* orb_params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
@@ -252,6 +254,9 @@ public:
     //! keyframe ID
     unsigned int id_;
 
+    //! source frame ID
+    const unsigned int src_frm_id_;
+    
     //! timestamp in seconds
     const double timestamp_;
 

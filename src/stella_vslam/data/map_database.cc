@@ -345,6 +345,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
 void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
+    const auto src_frm_id = json_keyfrm.at("src_frm_id").get<double>();
     const auto timestamp = json_keyfrm.at("ts").get<double>();
     const auto camera_name = json_keyfrm.at("cam").get<std::string>();
     const auto camera = cam_db->get_camera(camera_name);
@@ -388,7 +389,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
-        id, timestamp, pose_cw, camera, orb_params,
+        id, src_frm_id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
 
     // Append to map database

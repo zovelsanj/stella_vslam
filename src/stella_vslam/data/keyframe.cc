@@ -18,20 +18,22 @@ namespace stella_vslam {
 namespace data {
 
 keyframe::keyframe(unsigned int id, const frame& frm)
-    : id_(id), timestamp_(frm.timestamp_),
+    : id_(id), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
       camera_(frm.camera_), orb_params_(frm.orb_params_),
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       landmarks_(frm.get_landmarks()) {
     // set pose parameters (pose_wc_, trans_wc_) using frm.pose_cw_
     set_pose_cw(frm.get_pose_cw());
+    std::cout<<"src_frm_id: "<<frm.id_<<std::endl;
 }
 
-keyframe::keyframe(const unsigned int id, const double timestamp,
+keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
                    const Mat44_t& pose_cw, camera::base* camera,
                    const feature::orb_params* orb_params, const frame_observation& frm_obs,
                    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec)
     : id_(id),
+      src_frm_id_(src_frm_id),
       timestamp_(timestamp), camera_(camera),
       orb_params_(orb_params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
@@ -59,13 +61,13 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(unsigned int id, const frame& 
 }
 
 std::shared_ptr<keyframe> keyframe::make_keyframe(
-    const unsigned int id, const double timestamp,
+    const unsigned int id, const unsigned int src_frm_id, const double timestamp,
     const Mat44_t& pose_cw, camera::base* camera,
     const feature::orb_params* orb_params, const frame_observation& frm_obs,
     const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
-        id, timestamp,
+        id, src_frm_id, timestamp,
         pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
@@ -83,6 +85,8 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     auto id = sqlite3_column_int64(stmt, column_id);
     column_id++;
     // NOTE: src_frm_id is removed
+    auto src_frm_id = sqlite3_column_int64(stmt, column_id); //added manually
+
     column_id++;
     auto timestamp = sqlite3_column_double(stmt, column_id);
     column_id++;
@@ -141,7 +145,7 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
-        id + next_keyframe_id, timestamp, pose_cw, camera, orb_params,
+        id + next_keyframe_id, src_frm_id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     return keyfrm;
 }
@@ -174,6 +178,7 @@ nlohmann::json keyframe::to_json() const {
     }
 
     return {{"ts", timestamp_},
+            {"src_frm_id", src_frm_id_},
             {"cam", camera_->name_},
             {"orb_params", orb_params_->name_},
             // camera pose
